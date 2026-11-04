@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>סידור תפילה – עורך והדפסה</title>
+<link rel="stylesheet" href="css/app.css">
+<style id="dyn"></style>
+<style id="pagecss"></style>
+</head>
+<body>
+<header id="topbar">
+  <button class="btn" id="btnSide" title="הצג/הסתר לוח הגדרות">☰</button>
+  <span class="brand">סידור תפילה</span>
+  <div class="grp">
+    <select id="selNusach" title="נוסח"></select>
+  </div>
+  <div class="seg" id="segPrayer">
+    <button data-p="shacharit">שחרית</button>
+    <button data-p="mincha">מנחה</button>
+    <button data-p="arvit">ערבית</button>
+  </div>
+  <div class="grp">
+    <button class="btn" id="btnEdit" title="לחיצה על אות פותחת עריכת ניקוד">✎ מצב עריכה</button>
+    <button class="btn" id="btnAdd" title="הוספת טקסט חדש">＋ הוספת טקסט</button>
+    <button class="btn" id="btnUndo" title="ביטול (Ctrl+Z)">↶</button>
+    <button class="btn" id="btnRedo" title="חזרה (Ctrl+Y)">↷</button>
+  </div>
+  <div class="grp">
+    <button class="btn" id="zoomOut" title="הקטנת תצוגה">−</button>
+    <select id="selZoom" title="גודל תצוגה">
+      <option value="0.5">50%</option><option value="0.65">65%</option><option value="0.8">80%</option>
+      <option value="1">100% (גודל אמיתי)</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option><option value="fit">התאמה לרוחב</option>
+    </select>
+    <button class="btn" id="zoomIn" title="הגדלת תצוגה">+</button>
+    <button class="btn" id="btnSpread" title="תצוגת שני עמודים זה לצד זה">▯▯</button>
+  </div>
+  <span class="spacer"></span>
+  <span id="status"></span>
+  <button class="btn primary" id="btnPrint">🖶 הדפסה / PDF</button>
+</header>
+
+<div id="main">
+  <aside id="side">
+    <nav id="tabs">
+      <button data-tab="toc" class="on">תוכן</button>
+      <button data-tab="text">טקסט</button>
+      <button data-tab="nikud">ניקוד</button>
+      <button data-tab="page">דף</button>
+      <button data-tab="file">קובץ</button>
+    </nav>
+    <div id="panel"></div>
+  </aside>
+  <section id="viewer">
+    <div id="pages"></div>
+  </section>
+</div>
+
+<div id="pop"></div>
+<div id="loading">טוען…</div>
+
+<dialog id="dlgText">
+  <div class="dlg">
+    <h3 id="dlgTitle">עריכת טקסט</h3>
+    <div class="row" id="dlgTypeRow">
+      <label>סוג</label>
+      <select id="dlgType">
+        <option value="p">פסקה רגילה</option>
+        <option value="instr">הוראה / הערה (טקסט קטן)</option>
+        <option value="h1">כותרת ראשית</option>
+        <option value="h2">כותרת</option>
+        <option value="h3">כותרת משנה</option>
+      </select>
+      <label>מיקום</label>
+      <select id="dlgPos">
+        <option value="after">אחרי הפסקה הנבחרת</option>
+        <option value="before">לפני הפסקה הנבחרת</option>
+      </select>
+    </div>
+    <div class="ed-toolbar">
+      <button data-cmd="bold" title="מודגש"><b>B</b></button>
+      <button data-cmd="small" title="הקטנת המסומן">א-</button>
+      <button data-cmd="big" title="הגדלת המסומן">א+</button>
+      <label title="צבע לטקסט המסומן">צבע <input type="color" id="edColor" value="#c62828"></label>
+      <button data-cmd="color" title="צבע את המסומן">צבע</button>
+      <button data-cmd="clear" title="הסרת עיצוב מהמסומן">ניקוי עיצוב</button>
+      <button data-cmd="nikud" title="מקלדת ניקוד">ניקוד ⌨</button>
+    </div>
+    <div class="nikud-kb" id="nikudKb" hidden></div>
+    <div class="editor" id="editor" contenteditable="true" spellcheck="false"></div>
+    <div class="hint">אפשר להקליד או להדביק טקסט מנוקד. אחרי השמירה אפשר ללחוץ על כל אות כדי לתקן את הניקוד שלה.</div>
+    <div class="grid2" id="dlgStyle"></div>
+    <div class="foot">
+      <button class="btn primary" id="dlgOk">שמירה</button>
+      <button class="btn" id="dlgCancel">ביטול</button>
+    </div>
+  </div>
+</dialog>
+
+<input type="file" id="fileImport" accept=".json,application/json" hidden>
+
+<script src="js/hebrew.js"></script>
+<script src="js/render.js"></script>
+<script src="js/paginate.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
