@@ -145,8 +145,20 @@
         rest.classList.remove('split');
         piece.classList.add('split');
         let node = words[k - 1].nextSibling;
+        // does the cut fall on a forced line break? then the last line must stay unjustified
+        let nb = node;
+        while (nb && nb.nodeType === 3 && !nb.data.trim()) nb = nb.nextSibling;
+        const atBreak = !!(nb && nb.tagName === 'BR');
         while (node) { const nx = node.nextSibling; rest.appendChild(node); node = nx; }
         while (rest.firstChild && (rest.firstChild.nodeType === 3 || rest.firstChild.tagName === 'BR')) rest.removeChild(rest.firstChild);
+        if (!atBreak) {
+          // justify only the cut line: an invisible full-width filler pushes it off being the last line
+          // (the filler's own empty line falls below the page body and is clipped)
+          piece.appendChild(document.createTextNode(' '));
+          const fill = document.createElement('span');
+          fill.className = 'jfill';
+          piece.appendChild(fill);
+        }
         noteFirst(piece);
         newPage();
         piece = rest;
