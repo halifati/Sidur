@@ -89,7 +89,7 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; ba
 .page-src { position: absolute; visibility: hidden; }
 .body { direction: rtl; font-kerning: normal; hyphens: none; }
 .blk { overflow-wrap: break-word; }
-.blk.split { text-align-last: justify; }
+.blk .jfill { display: inline-block; width: 100%; height: 0; }
 .blk.cont { text-indent: 0 !important; margin-top: 0 !important; }
 .blk.hid { opacity: .35; outline: 1px dashed #c33; }
 .w { white-space: nowrap; }
