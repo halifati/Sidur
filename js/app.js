@@ -6,7 +6,7 @@
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
 
-  const NUSACHIM = { ashkenaz: 'נוסח אשכנז', sefard: 'נוסח ספרד', edot: 'עדות המזרח' };
+  const NUSACHIM = { ashkenaz: 'נוסח אשכנז', sefard: 'נוסח ספרד', edot: 'עדות המזרח', kavanot: 'עדות המזרח + כוונות' };
   const PRAYERS = { shacharit: 'שחרית', mincha: 'מנחה', arvit: 'ערבית' };
   const FONTS = ['Noto Serif Hebrew', 'Frank Ruhl Libre', 'David Libre', 'Noto Sans Hebrew'];
   const PAGE_PRESETS = {
@@ -27,6 +27,7 @@
     h2: { size: 1.45, color: '#7a1c1c', align: 'center', bold: true },
     h3: { size: 1.15, color: '#333333', align: 'center', bold: true },
     instr: { size: 0.78, color: '#555555' },
+    kav: { show: true, size: 0.72, color: '#6a3d9a', bold: false },
     marks: {
       sn: { on: true, color: '#c62828', bold: true, scale: 1.25, dx: 0 },
       sc: { on: false, color: '#2e7d32', bold: false, scale: 1, dx: 0 },
@@ -121,6 +122,7 @@
         if (lvl && lvl <= hideLevel) hideLevel = 0; else continue;
       }
       if (b.style && b.style.hide) { if (lvl) hideLevel = lvl; continue; }
+      if (!lvl && !S.kav.show && b.runs.every((r) => r.br || r.k)) continue;
       out.push(b);
     }
     return out;
@@ -215,6 +217,8 @@
     css += '.r.s1{font-size:' + S.instr.size + 'em;color:' + S.instr.color + ';}';
     css += '.r.s2{font-size:' + S.instr.size * 0.9 + 'em;color:' + S.instr.color + ';}';
     css += '.r.g1{font-size:1.2em;}.r.g2{font-size:1.4em;}';
+    css += '.r.k{font-size:' + S.kav.size + 'em;color:' + S.kav.color + ';font-weight:' + (S.kav.bold ? 700 : 400) + ';}';
+    css += '.editor .kv{font-size:' + S.kav.size + 'em;color:' + S.kav.color + ';}';
     css += '.blk.instr{text-align-last:auto;}';
     for (const k of Object.keys(m)) {
       const st = m[k];
@@ -811,12 +815,13 @@
     closePop();
   }
 
-  function wrapSelection(tag) {
+  function wrapSelection(tag, attrs) {
     const s = window.getSelection();
     if (!s.rangeCount || s.isCollapsed) return;
     const r = s.getRangeAt(0);
     if (!$('#editor').contains(r.commonAncestorContainer)) return;
     const w = document.createElement(tag);
+    for (const k in attrs || {}) w.setAttribute(k, attrs[k]);
     w.appendChild(r.extractContents());
     r.insertNode(w);
   }
@@ -831,6 +836,7 @@
         if (cmd === 'bold') document.execCommand('bold');
         else if (cmd === 'small') wrapSelection('small');
         else if (cmd === 'big') wrapSelection('big');
+        else if (cmd === 'kav') wrapSelection('span', { class: 'kv', 'data-k': '1' });
         else if (cmd === 'color') { document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, $('#edColor').value); }
         else if (cmd === 'clear') {
           const s = window.getSelection();
@@ -964,6 +970,12 @@
     p.append(sec('הוראות והערות (טקסט קטן)',
       ctl('גודל (יחסי)', 'instr.size', 'range', 'layout', { min: 0.5, max: 1.2, step: 0.02 }),
       ctl('צבע', 'instr.color', 'color', 'css')));
+    p.append(sec('כוונות',
+      el('div', { class: 'hint' }, 'כוונות הן טקסט שסומן ככוונה (בסידור עם הכוונות: מה שבסוגריים). אפשר להסתיר אותן כדי להדפיס סידור נקי. בעורך הטקסט מסמנים טקסט ולוחצים "כוונה".'),
+      ctl('הצגת כוונות', 'kav.show', 'checkbox', 'render'),
+      ctl('גודל (יחסי)', 'kav.size', 'range', 'layout', { min: 0.4, max: 1.3, step: 0.02 }),
+      ctl('צבע', 'kav.color', 'color', 'css'),
+      ctl('מודגש', 'kav.bold', 'checkbox', 'layout')));
     p.append(sec('טעמים ומתג',
       ctl('הצגת טעמי המקרא', 'taamim', 'checkbox', 'render'),
       ctl('הצגת מתג / געיה', 'meteg', 'checkbox', 'render')));
