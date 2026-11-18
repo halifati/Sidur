@@ -5,20 +5,21 @@
 
   const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  /** Parse the simple source HTML (<b>,<small>,<big>,<em>,<br>) to runs. */
+  /** Parse the simple source HTML (<b>,<small>,<big>,<em>,<k> kavanah,<br>) to runs. */
   function htmlToRuns(h) {
     const runs = [];
-    let b = 0, s = 0, g = 0, i = 0;
-    const re = /<(\/?)(b|small|big|em|br)>|([^<]+)|</g;
+    let b = 0, s = 0, g = 0, i = 0, k = 0;
+    const re = /<(\/?)(b|small|big|em|br|k)>|([^<]+)|</g;
     let m;
     while ((m = re.exec(h))) {
       if (m[3] !== undefined || m[0] === '<') {
-        const t = m[3] !== undefined ? m[3].replace(/&quot;/g, '"').replace(/&amp;/g, '&') : '<';
+        const t = m[3] !== undefined ? m[3].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '<';
         const r = { t };
         if (b) r.b = 1;
         if (s) r.s = Math.min(s, 2);
         if (g) r.g = Math.min(g, 2);
         if (i) r.i = 1;
+        if (k) r.k = 1;
         runs.push(r);
       } else {
         const close = m[1] === '/';
@@ -28,6 +29,7 @@
           case 'small': s = Math.max(0, s + d); break;
           case 'big': g = Math.max(0, g + d); break;
           case 'em': i = Math.max(0, i + d); break;
+          case 'k': k = Math.max(0, k + d); break;
           case 'br': if (!close) runs.push({ br: 1 }); break;
         }
       }
@@ -36,7 +38,7 @@
   }
 
   const sameStyle = (a, b) => !a.br && !b.br && (a.b || 0) === (b.b || 0) && (a.s || 0) === (b.s || 0) &&
-    (a.g || 0) === (b.g || 0) && (a.i || 0) === (b.i || 0) && (a.c || '') === (b.c || '') && (a.fs || 0) === (b.fs || 0);
+    (a.g || 0) === (b.g || 0) && (a.i || 0) === (b.i || 0) && (a.c || '') === (b.c || '') && (a.fs || 0) === (b.fs || 0) && (a.k || 0) === (b.k || 0);
 
   function mergeRuns(runs) {
     const out = [];
@@ -55,6 +57,7 @@
     if (r.s) c += ' s' + r.s;
     if (r.g) c += ' g' + r.g;
     if (r.i) c += ' i';
+    if (r.k) c += ' k';
     return c;
   }
   function runStyle(r) {
@@ -86,8 +89,10 @@
   /** Analyze all words of a block. Returns items with parsed clusters + analysis. */
   function blockItems(block, S, doc) {
     const items = [];
+    const hideKav = S.kav && !S.kav.show;
     block.runs.forEach((run, r) => {
       if (run.br) { items.push({ k: 'BR', r }); return; }
+      if (run.k && hideKav) { items.push({ k: 'S', s: ' ', r, off: 0, kv: true }); return; }
       for (const tk of tokenize(run.t)) { tk.r = r; items.push(tk); }
     });
     const opts = {
@@ -111,6 +116,23 @@
       else flush(it);
     }
     flush(null);
+    if (hideKav) {
+      const clean = [];
+      let droppedKav = false;
+      for (const it of items) {
+        const last = clean[clean.length - 1];
+        if (it.kv) droppedKav = true;
+        // no space left before punctuation where a kavanah was removed
+        if (it.k === 'X' && droppedKav && last && last.k === 'S' && /^[,.:;׃!?)\]]/.test(it.s)) clean.pop();
+        if (it.k !== 'S') droppedKav = false;
+        if (it.k === 'S' && (!last || last.k === 'S' || last.k === 'BR')) continue;
+        if (it.k === 'BR' && (!last || last.k === 'BR')) continue;
+        if (it.k === 'BR' && last.k === 'S') clean.pop();
+        clean.push(it);
+      }
+      while (clean.length && (clean[clean.length - 1].k === 'S' || clean[clean.length - 1].k === 'BR')) clean.pop();
+      return clean;
+    }
     return items;
   }
 
@@ -119,7 +141,7 @@
     const items = blockItems(block, S, doc);
     const st = block.style || {};
     let cls = 'blk t-' + block.type;
-    if (block.type === 'p' && block.runs.length && block.runs.every((r) => r.br || r.s)) cls += ' instr';
+    if (block.type === 'p' && block.runs.length && block.runs.every((r) => r.br || r.s || r.k)) cls += ' instr';
     if (st.hide) cls += ' hid';
     if (block.added) cls += ' added';
     let style = '';
@@ -188,6 +210,7 @@
       if (r.i) t = '<i>' + t + '</i>';
       for (let k = 0; k < (r.s || 0); k++) t = '<small>' + t + '</small>';
       for (let k = 0; k < (r.g || 0); k++) t = '<big>' + t + '</big>';
+      if (r.k) t = '<span class="kv" data-k="1">' + t + '</span>';
       const st = runStyle(r);
       if (st) t = '<span style="' + st + '">' + t + '</span>';
       h += t;
@@ -210,6 +233,7 @@
             if (ctx.i) r.i = 1;
             if (ctx.c) r.c = ctx.c;
             if (ctx.fs) r.fs = ctx.fs;
+            if (ctx.k) r.k = 1;
             runs.push(r);
           }
         } else if (ch.nodeType === 1) {
@@ -220,6 +244,7 @@
           if (tag === 'I' || tag === 'EM') c2.i = 1;
           if (tag === 'SMALL') c2.s = (c2.s || 0) + 1;
           if (tag === 'BIG') c2.g = (c2.g || 0) + 1;
+          if (ch.dataset && ch.dataset.k) c2.k = 1;
           if (tag === 'FONT' && ch.getAttribute('color')) c2.c = ch.getAttribute('color');
           const st = ch.style;
           if (st) {
